@@ -31,11 +31,7 @@ class CartActor extends Actor with Timers {
   private def scheduleTimer: Unit =
     timers.startSingleTimer(ExpireCart, ExpireCart, cartTimerDuration)
 
-  override def preStart: Unit = context become empty
-
-  def receive: Receive = LoggingReceive {
-    case _ => {}
-  }
+  def receive: Receive = empty
 
   def empty: Receive = LoggingReceive {
     case AddItem(item) =>
