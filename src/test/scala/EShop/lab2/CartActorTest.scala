@@ -23,9 +23,9 @@ class CartActorTest
     val nonEmptyTestMsg = "changedStateToNonEmpty"
 
     val cart = system.actorOf(Props(new CartActor {
-      override def nonEmpty(cart: Cart, timer: Cancellable): Receive = {
+      override def nonEmpty(cart: Cart): Receive = {
         sender ! nonEmptyTestMsg
-        super.nonEmpty(cart, timer)
+        super.nonEmpty(cart)
       }
     }))
 
@@ -150,8 +150,8 @@ object CartActorTest {
         result
       }
 
-      override def nonEmpty(cart: Cart, timer: Cancellable): Receive = {
-        val result = super.nonEmpty(cart, timer)
+      override def nonEmpty(cart: Cart): Receive = {
+        val result = super.nonEmpty(cart)
         sender ! nonEmptyMsg
         sender ! cart.size
         result

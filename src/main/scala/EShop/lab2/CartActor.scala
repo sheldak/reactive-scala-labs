@@ -1,6 +1,6 @@
 package EShop.lab2
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Props, Timers}
 import akka.event.{Logging, LoggingReceive}
 
 import scala.concurrent.duration._
@@ -22,21 +22,59 @@ object CartActor {
   def props = Props(new CartActor())
 }
 
-class CartActor extends Actor {
-
+class CartActor extends Actor with Timers {
   import CartActor._
 
   private val log       = Logging(context.system, this)
   val cartTimerDuration = 5 seconds
 
-  private def scheduleTimer: Cancellable = ???
+  private def scheduleTimer: Unit =
+    timers.startSingleTimer(ExpireCart, ExpireCart, cartTimerDuration)
 
-  def receive: Receive = ???
+  override def preStart: Unit = context become empty
 
-  def empty: Receive = ???
+  def receive: Receive = LoggingReceive {
+    case _ => {}
+  }
 
-  def nonEmpty(cart: Cart, timer: Cancellable): Receive = ???
+  def empty: Receive = LoggingReceive {
+    case AddItem(item) =>
+      val cart = Cart.empty.addItem(item)
+      scheduleTimer
+      context become nonEmpty(cart)
+  }
 
-  def inCheckout(cart: Cart): Receive = ???
+  def nonEmpty(cart: Cart): Receive = LoggingReceive {
+    case AddItem(item) =>
+      val updatedCart = cart.addItem(item)
+      scheduleTimer
+      context become nonEmpty(updatedCart)
 
+    case RemoveItem(item) =>
+      if (cart.contains(item)) {
+        val updatedCart = cart.removeItem(item)
+
+        if (updatedCart.size == 0) {
+          timers.cancel(ExpireCart)
+          context become empty
+        } else {
+          scheduleTimer
+          context become nonEmpty(updatedCart)
+        }
+      }
+
+    case ExpireCart =>
+      context become empty
+
+    case StartCheckout =>
+      context become inCheckout(cart)
+  }
+
+  def inCheckout(cart: Cart): Receive = LoggingReceive {
+    case ConfirmCheckoutClosed =>
+      context become empty
+
+    case ConfirmCheckoutCancelled =>
+      context become nonEmpty(cart)
+  }
 }
