@@ -25,6 +25,8 @@ object TypedCartActor {
 
   sealed trait Event
   case class CheckoutStarted(checkoutRef: ActorRef[TypedCheckout.Command]) extends Event
+
+  def apply(): Behavior[Command] = Behaviors.setup(context => new TypedCartActor().start)
 }
 
 class TypedCartActor {
@@ -69,15 +71,24 @@ class TypedCartActor {
             } else
               Behaviors.same
 
+          case StartCheckout(orderManagerRef) =>
+            timers.cancel(ExpireCart)
+
+            val checkoutRef = context.spawn(TypedCheckout(context.self), "checkout")
+            checkoutRef ! TypedCheckout.StartCheckout
+
+            orderManagerRef ! OrderManager.ConfirmCheckoutStarted(checkoutRef)
+            inCheckout(cart, timers)
+
           case ExpireCart =>
             empty(timers)
-
-          case StartCheckout(orderManagerRef) =>
-            inCheckout(cart, timers)
       }
     )
 
-  def inCheckout(cart: Cart, timers: TimerScheduler[TypedCartActor.Command]): Behavior[TypedCartActor.Command] =
+  def inCheckout(
+    cart: Cart,
+    timers: TimerScheduler[TypedCartActor.Command]
+  ): Behavior[TypedCartActor.Command] =
     Behaviors.receive(
       (context, msg) =>
         msg match {

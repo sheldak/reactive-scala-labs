@@ -6,7 +6,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import scala.language.postfixOps
 
 import scala.concurrent.duration._
-import EShop.lab3.OrderManager
+import EShop.lab3.{OrderManager, Payment}
 
 object TypedCheckout {
 
@@ -27,6 +27,9 @@ object TypedCheckout {
   sealed trait Event
   case object CheckOutClosed                           extends Event
   case class PaymentStarted(paymentRef: ActorRef[Any]) extends Event
+
+  def apply(cartActor: ActorRef[TypedCartActor.Command]): Behavior[Command] =
+    Behaviors.setup(context => new TypedCheckout(cartActor).start)
 }
 
 class TypedCheckout(
@@ -71,6 +74,10 @@ class TypedCheckout(
           case SelectPayment(payment, orderManagerRef) =>
             timers.cancel(ExpireCheckout)
             timers.startSingleTimer(ExpirePayment, ExpirePayment, paymentTimerDuration)
+
+            val paymentRef = context.spawn(Payment(payment, orderManagerRef, context.self), "payment")
+            orderManagerRef ! OrderManager.ConfirmPaymentStarted(paymentRef)
+
             processingPayment(timers)
 
           case CancelCheckout =>
@@ -87,22 +94,22 @@ class TypedCheckout(
       (context, msg) =>
         msg match {
           case ConfirmPaymentReceived =>
+            timers.cancel(ExpirePayment)
+            cartActor ! TypedCartActor.ConfirmCheckoutClosed
             closed
 
           case CancelCheckout =>
             timers.cancel(ExpirePayment)
+            cartActor ! TypedCartActor.ConfirmCheckoutCancelled
             cancelled
 
           case ExpirePayment =>
+            cartActor ! TypedCartActor.ConfirmCheckoutCancelled
             cancelled
       }
     )
 
-  def cancelled: Behavior[TypedCheckout.Command] = Behaviors.receive(
-    (context, msg) => Behaviors.same
-  )
+  def cancelled: Behavior[TypedCheckout.Command] = Behaviors.stopped
 
-  def closed: Behavior[TypedCheckout.Command] = Behaviors.receive(
-    (context, msg) => Behaviors.same
-  )
+  def closed: Behavior[TypedCheckout.Command] = Behaviors.stopped
 }
