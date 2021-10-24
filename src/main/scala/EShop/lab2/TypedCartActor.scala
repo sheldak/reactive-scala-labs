@@ -46,6 +46,10 @@ class TypedCartActor {
           val cart = Cart.empty.addItem(item)
           scheduleTimer(timers)
           nonEmpty(cart, timers)
+
+        case GetItems(sender) =>
+          sender ! Cart.empty
+          Behaviors.same
     }
   )
 
@@ -70,6 +74,10 @@ class TypedCartActor {
               }
             } else
               Behaviors.same
+
+          case GetItems(sender) =>
+            sender ! cart
+            Behaviors.same
 
           case StartCheckout(orderManagerRef) =>
             timers.cancel(ExpireCart)
