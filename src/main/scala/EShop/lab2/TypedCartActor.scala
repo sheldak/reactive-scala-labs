@@ -72,7 +72,7 @@ class TypedCartActor {
           case ExpireCart =>
             empty(timers)
 
-          case StartCheckout =>
+          case StartCheckout(orderManagerRef) =>
             inCheckout(cart, timers)
       }
     )

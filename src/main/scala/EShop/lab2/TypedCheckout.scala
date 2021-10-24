@@ -68,7 +68,7 @@ class TypedCheckout(
     Behaviors.receive(
       (context, msg) =>
         msg match {
-          case SelectPayment(payment) =>
+          case SelectPayment(payment, orderManagerRef) =>
             timers.cancel(ExpireCheckout)
             timers.startSingleTimer(ExpirePayment, ExpirePayment, paymentTimerDuration)
             processingPayment(timers)
