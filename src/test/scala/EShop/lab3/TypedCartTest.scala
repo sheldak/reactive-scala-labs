@@ -41,11 +41,11 @@ class TypedCartTest
   }
 
   it should "start checkout" in {
-    val testKit       = BehaviorTestKit(TypedCartActor())
-    val manager_inbox = TestInbox[OrderManager.Command]()
+    val testKit      = BehaviorTestKit(TypedCartActor())
+    val managerInbox = TestInbox[OrderManager.Command]()
 
     testKit.run(TypedCartActor.AddItem("item"))
-    testKit.run(TypedCartActor.StartCheckout(manager_inbox.ref))
+    testKit.run(TypedCartActor.StartCheckout(managerInbox.ref))
     testKit.expectEffectType[TimerScheduled[TypedCartActor.Command]]
     testKit.expectEffectType[TimerCancelled]
     testKit.expectEffectType[Spawned[TypedCheckout.Command]]
