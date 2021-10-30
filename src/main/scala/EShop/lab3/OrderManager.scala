@@ -15,6 +15,7 @@ object OrderManager {
   case class ConfirmCheckoutStarted(checkoutRef: ActorRef[TypedCheckout.Command])                     extends Command
   case class ConfirmPaymentStarted(paymentRef: ActorRef[Payment.Command])                             extends Command
   case object ConfirmPaymentReceived                                                                  extends Command
+  case object ConfirmCheckoutClosed                                                                   extends Command
 
   sealed trait Ack
   case object Done extends Ack //trivial ACK
@@ -24,7 +25,33 @@ class OrderManager {
 
   import OrderManager._
 
+  var cartMapper: ActorRef[TypedCartActor.Event]    = null
+  var checkoutMapper: ActorRef[TypedCheckout.Event] = null
+  var paymentMapper: ActorRef[Payment.Event]        = null
+
   def start: Behavior[OrderManager.Command] = Behaviors.setup { context =>
+    cartMapper = context.messageAdapter(
+      event =>
+        event match {
+          case TypedCartActor.CheckoutStarted(checkoutRef) => ConfirmCheckoutStarted(checkoutRef)
+      }
+    )
+
+    checkoutMapper = context.messageAdapter(
+      event =>
+        event match {
+          case TypedCheckout.CheckoutClosed             => ConfirmCheckoutClosed
+          case TypedCheckout.PaymentStarted(paymentRef) => ConfirmPaymentStarted(paymentRef)
+      }
+    )
+
+    paymentMapper = context.messageAdapter(
+      event =>
+        event match {
+          case Payment.PaymentReceived => ConfirmPaymentReceived
+      }
+    )
+
     val cartActor = context.spawn(TypedCartActor(), "cart")
     open(cartActor)
   }
@@ -47,7 +74,7 @@ class OrderManager {
           Behaviors.same
 
         case Buy(sender) =>
-          cartActor ! TypedCartActor.StartCheckout(context.self)
+          cartActor ! TypedCartActor.StartCheckout(cartMapper)
           inCheckout(cartActor, sender)
     }
   )
@@ -69,7 +96,7 @@ class OrderManager {
       msg match {
         case SelectDeliveryAndPaymentMethod(delivery, payment, sender) =>
           checkoutActorRef ! TypedCheckout.SelectDeliveryMethod(delivery)
-          checkoutActorRef ! TypedCheckout.SelectPayment(payment, context.self)
+          checkoutActorRef ! TypedCheckout.SelectPayment(payment, checkoutMapper, paymentMapper)
           inPayment(sender)
     }
   )
