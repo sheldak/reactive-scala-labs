@@ -75,8 +75,7 @@ class TypedCartActorTest extends ScalaTestWithActorTestKit with AnyFlatSpecLike 
     probe.expectMessage(nonEmptyMsg)
     probe.expectMessage(1)
 
-    cart ! StartCheckout(testKit.createTestProbe[OrderManager.Command]().ref)
-
+    cart ! StartCheckout(testKit.createTestProbe[TypedCartActor.Event].ref)
     probe.expectMessage(inCheckoutMsg)
     probe.expectMessage(1)
   }
@@ -93,7 +92,7 @@ class TypedCartActorTest extends ScalaTestWithActorTestKit with AnyFlatSpecLike 
     probe.expectMessage(nonEmptyMsg)
     probe.expectMessage(1)
 
-    cart ! StartCheckout(testKit.createTestProbe[OrderManager.Command]().ref)
+    cart ! StartCheckout(testKit.createTestProbe[TypedCartActor.Event]().ref)
 
     probe.expectMessage(inCheckoutMsg)
     probe.expectMessage(1)
@@ -116,7 +115,7 @@ class TypedCartActorTest extends ScalaTestWithActorTestKit with AnyFlatSpecLike 
     probe.expectMessage(nonEmptyMsg)
     probe.expectMessage(1)
 
-    cart ! StartCheckout(testKit.createTestProbe[OrderManager.Command]().ref)
+    cart ! StartCheckout(testKit.createTestProbe[TypedCartActor.Event]().ref)
 
     probe.expectMessage(inCheckoutMsg)
     probe.expectMessage(1)
@@ -139,7 +138,7 @@ class TypedCartActorTest extends ScalaTestWithActorTestKit with AnyFlatSpecLike 
     probe.expectMessage(nonEmptyMsg)
     probe.expectMessage(1)
 
-    cart ! StartCheckout(testKit.createTestProbe[OrderManager.Command]().ref)
+    cart ! StartCheckout(testKit.createTestProbe[TypedCartActor.Event]().ref)
 
     probe.expectMessage(inCheckoutMsg)
     probe.expectMessage(1)
@@ -156,7 +155,7 @@ class TypedCartActorTest extends ScalaTestWithActorTestKit with AnyFlatSpecLike 
     probe.expectMessage(emptyMsg)
     probe.expectMessage(0)
 
-    cart ! StartCheckout(testKit.createTestProbe[OrderManager.Command]().ref)
+    cart ! StartCheckout(testKit.createTestProbe[TypedCartActor.Event]().ref)
 
     probe.expectNoMessage()
   }

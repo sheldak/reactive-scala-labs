@@ -15,16 +15,18 @@ import java.awt.Component.BaselineResizeBehavior
 object TypedCartActor {
 
   sealed trait Command
-  case class AddItem(item: Any)                                             extends Command
-  case class RemoveItem(item: Any)                                          extends Command
-  case object ExpireCart                                                    extends Command
-  case class StartCheckout(orderManagerRef: ActorRef[OrderManager.Command]) extends Command
-  case object ConfirmCheckoutCancelled                                      extends Command
-  case object ConfirmCheckoutClosed                                         extends Command
-  case class GetItems(sender: ActorRef[Cart])                               extends Command // command made to make testing easier
+  case class AddItem(item: Any)                              extends Command
+  case class RemoveItem(item: Any)                           extends Command
+  case object ExpireCart                                     extends Command
+  case class StartCheckout(orderManagerRef: ActorRef[Event]) extends Command
+  case object ConfirmCheckoutCancelled                       extends Command
+  case object ConfirmCheckoutClosed                          extends Command
+  case class GetItems(sender: ActorRef[Cart])                extends Command // command made to make testing easier
 
   sealed trait Event
   case class CheckoutStarted(checkoutRef: ActorRef[TypedCheckout.Command]) extends Event
+
+  def apply(): Behavior[Command] = Behaviors.setup(context => new TypedCartActor().start)
 }
 
 class TypedCartActor {
@@ -32,10 +34,22 @@ class TypedCartActor {
 
   val cartTimerDuration: FiniteDuration = 5 seconds
 
+  var checkoutMapper: ActorRef[TypedCheckout.Event] = null
+
   private def scheduleTimer(timers: TimerScheduler[TypedCartActor.Command]) =
     timers.startSingleTimer(ExpireCart, ExpireCart, cartTimerDuration)
 
-  def start: Behavior[TypedCartActor.Command] = Behaviors.withTimers(timers => empty(timers))
+  def start: Behavior[TypedCartActor.Command] = Behaviors.setup { context =>
+    checkoutMapper = context.messageAdapter(
+      event =>
+        event match {
+          case TypedCheckout.CheckoutClosed    => ConfirmCheckoutClosed
+          case TypedCheckout.CheckoutCancelled => ConfirmCheckoutCancelled
+      }
+    )
+
+    Behaviors.withTimers(timers => empty(timers))
+  }
 
   def empty(timers: TimerScheduler[TypedCartActor.Command]): Behavior[TypedCartActor.Command] = Behaviors.receive(
     (context, msg) =>
@@ -44,6 +58,10 @@ class TypedCartActor {
           val cart = Cart.empty.addItem(item)
           scheduleTimer(timers)
           nonEmpty(cart, timers)
+
+        case GetItems(sender) =>
+          sender ! Cart.empty
+          Behaviors.same
     }
   )
 
@@ -69,15 +87,28 @@ class TypedCartActor {
             } else
               Behaviors.same
 
-          case ExpireCart =>
-            empty(timers)
+          case GetItems(sender) =>
+            sender ! cart
+            Behaviors.same
 
           case StartCheckout(orderManagerRef) =>
+            timers.cancel(ExpireCart)
+
+            val checkoutRef = context.spawn(TypedCheckout(checkoutMapper), "checkout")
+            checkoutRef ! TypedCheckout.StartCheckout
+
+            orderManagerRef ! CheckoutStarted(checkoutRef)
             inCheckout(cart, timers)
+
+          case ExpireCart =>
+            empty(timers)
       }
     )
 
-  def inCheckout(cart: Cart, timers: TimerScheduler[TypedCartActor.Command]): Behavior[TypedCartActor.Command] =
+  def inCheckout(
+    cart: Cart,
+    timers: TimerScheduler[TypedCartActor.Command]
+  ): Behavior[TypedCartActor.Command] =
     Behaviors.receive(
       (context, msg) =>
         msg match {
