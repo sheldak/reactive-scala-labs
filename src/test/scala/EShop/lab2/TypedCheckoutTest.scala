@@ -3,7 +3,7 @@ package EShop.lab2
 import akka.actor.testkit.typed.scaladsl.{ActorTestKit, ScalaTestWithActorTestKit}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.Cancellable
-import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.{Behaviors, TimerScheduler}
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.BeforeAndAfterAll
 
@@ -211,20 +211,22 @@ object TypedCheckoutTest {
             super.start
           })
 
-        override def selectingDelivery(timer: Cancellable): Behavior[TypedCheckout.Command] =
+        override def selectingDelivery(timer: TimerScheduler[TypedCheckout.Command]): Behavior[TypedCheckout.Command] =
           Behaviors.setup(_ => {
             val result = super.selectingDelivery(timer)
             probe ! selectingDeliveryMsg
             result
           })
 
-        override def selectingPaymentMethod(timer: Cancellable): Behavior[TypedCheckout.Command] =
+        override def selectingPaymentMethod(
+          timer: TimerScheduler[TypedCheckout.Command]
+        ): Behavior[TypedCheckout.Command] =
           Behaviors.setup(_ => {
             probe ! selectingPaymentMethodMsg
             super.selectingPaymentMethod(timer)
           })
 
-        override def processingPayment(timer: Cancellable): Behavior[TypedCheckout.Command] =
+        override def processingPayment(timer: TimerScheduler[TypedCheckout.Command]): Behavior[TypedCheckout.Command] =
           Behaviors.setup(_ => {
             probe ! processingPaymentMsg
             super.processingPayment(timer)
