@@ -23,8 +23,20 @@ object TypedCartActor {
   case object ConfirmCheckoutClosed                          extends Command
   case class GetItems(sender: ActorRef[Cart])                extends Command // command made to make testing easier
 
+  sealed trait State
+  case class Empty(timers: TimerScheduler[TypedCartActor.Command])                  extends State
+  case class NonEmpty(cart: Cart, timers: TimerScheduler[TypedCartActor.Command])   extends State
+  case class InCheckout(cart: Cart, timers: TimerScheduler[TypedCartActor.Command]) extends State
+
   sealed trait Event
+  case class ItemAdded(item: Any)                                          extends Event
+  case class ItemRemoved(item: Any)                                        extends Event
+  case object CartEmptied                                                  extends Event
+  case object CheckoutStarted                                              extends Event
   case class CheckoutStarted(checkoutRef: ActorRef[TypedCheckout.Command]) extends Event
+  case object CartExpired                                                  extends Event
+  case object CheckoutClosed                                               extends Event
+  case object CheckoutCancelled                                            extends Event
 
   def apply(): Behavior[Command] = Behaviors.setup(context => new TypedCartActor().start)
 }
