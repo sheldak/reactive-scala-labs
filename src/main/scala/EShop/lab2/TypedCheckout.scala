@@ -28,9 +28,20 @@ object TypedCheckout {
   case object ExpirePayment          extends Command
   case object ConfirmPaymentReceived extends Command
 
+  sealed trait State
+  case class WaitingForStart(timers: TimerScheduler[TypedCheckout.Command])        extends State
+  case class SelectingDelivery(timers: TimerScheduler[TypedCheckout.Command])      extends State
+  case class SelectingPaymentMethod(timers: TimerScheduler[TypedCheckout.Command]) extends State
+  case class ProcessingPayment(timers: TimerScheduler[TypedCheckout.Command])      extends State
+  case class Cancelled(timers: TimerScheduler[TypedCheckout.Command])              extends State
+  case class Closed(timers: TimerScheduler[TypedCheckout.Command])                 extends State
+
   sealed trait Event
+  case object CheckoutStarted                                      extends Event
+  case object DeliveryMethodSelected                               extends Event
   case object CheckoutClosed                                       extends Event
   case object CheckoutCancelled                                    extends Event
+  case object PaymentStarted                                       extends Event
   case class PaymentStarted(paymentRef: ActorRef[Payment.Command]) extends Event
 
   def apply(cartActor: ActorRef[TypedCheckout.Event]): Behavior[Command] =
