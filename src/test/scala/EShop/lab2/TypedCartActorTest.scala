@@ -4,7 +4,7 @@ import EShop.lab3.OrderManager
 import akka.actor.Cancellable
 import akka.actor.testkit.typed.scaladsl.{ActorTestKit, ScalaTestWithActorTestKit}
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.{Behaviors, TimerScheduler}
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.BeforeAndAfterAll
 
@@ -75,8 +75,7 @@ class TypedCartActorTest extends ScalaTestWithActorTestKit with AnyFlatSpecLike 
     probe.expectMessage(nonEmptyMsg)
     probe.expectMessage(1)
 
-    cart ! StartCheckout(testKit.createTestProbe[OrderManager.Command]().ref)
-
+    cart ! StartCheckout(testKit.createTestProbe[TypedCartActor.Event].ref)
     probe.expectMessage(inCheckoutMsg)
     probe.expectMessage(1)
   }
@@ -93,7 +92,7 @@ class TypedCartActorTest extends ScalaTestWithActorTestKit with AnyFlatSpecLike 
     probe.expectMessage(nonEmptyMsg)
     probe.expectMessage(1)
 
-    cart ! StartCheckout(testKit.createTestProbe[OrderManager.Command]().ref)
+    cart ! StartCheckout(testKit.createTestProbe[TypedCartActor.Event]().ref)
 
     probe.expectMessage(inCheckoutMsg)
     probe.expectMessage(1)
@@ -116,7 +115,7 @@ class TypedCartActorTest extends ScalaTestWithActorTestKit with AnyFlatSpecLike 
     probe.expectMessage(nonEmptyMsg)
     probe.expectMessage(1)
 
-    cart ! StartCheckout(testKit.createTestProbe[OrderManager.Command]().ref)
+    cart ! StartCheckout(testKit.createTestProbe[TypedCartActor.Event]().ref)
 
     probe.expectMessage(inCheckoutMsg)
     probe.expectMessage(1)
@@ -139,7 +138,7 @@ class TypedCartActorTest extends ScalaTestWithActorTestKit with AnyFlatSpecLike 
     probe.expectMessage(nonEmptyMsg)
     probe.expectMessage(1)
 
-    cart ! StartCheckout(testKit.createTestProbe[OrderManager.Command]().ref)
+    cart ! StartCheckout(testKit.createTestProbe[TypedCartActor.Event]().ref)
 
     probe.expectMessage(inCheckoutMsg)
     probe.expectMessage(1)
@@ -156,7 +155,7 @@ class TypedCartActorTest extends ScalaTestWithActorTestKit with AnyFlatSpecLike 
     probe.expectMessage(emptyMsg)
     probe.expectMessage(0)
 
-    cart ! StartCheckout(testKit.createTestProbe[OrderManager.Command]().ref)
+    cart ! StartCheckout(testKit.createTestProbe[TypedCartActor.Event]().ref)
 
     probe.expectNoMessage()
   }
@@ -198,25 +197,31 @@ object TypedCartActorTest {
       val cartActor = new TypedCartActor {
         override val cartTimerDuration: FiniteDuration = 1.seconds
 
-        override def empty: Behavior[TypedCartActor.Command] =
+        override def empty(timer: TimerScheduler[TypedCartActor.Command]): Behavior[TypedCartActor.Command] =
           Behaviors.setup(_ => {
             probe ! emptyMsg
             probe ! 0
-            super.empty
+            super.empty(timer)
           })
 
-        override def nonEmpty(cart: Cart, timer: Cancellable): Behavior[TypedCartActor.Command] =
+        override def nonEmpty(
+          cart: Cart,
+          timer: TimerScheduler[TypedCartActor.Command]
+        ): Behavior[TypedCartActor.Command] =
           Behaviors.setup(_ => {
             probe ! nonEmptyMsg
             probe ! cart.size
             super.nonEmpty(cart, timer)
           })
 
-        override def inCheckout(cart: Cart): Behavior[TypedCartActor.Command] =
+        override def inCheckout(
+          cart: Cart,
+          timer: TimerScheduler[TypedCartActor.Command]
+        ): Behavior[TypedCartActor.Command] =
           Behaviors.setup(_ => {
             probe ! inCheckoutMsg
             probe ! cart.size
-            super.inCheckout(cart)
+            super.inCheckout(cart, timer)
           })
 
       }
