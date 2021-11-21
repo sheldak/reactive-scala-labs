@@ -23,6 +23,7 @@ object TypedCheckout {
   ) extends Command
   case object ExpirePayment          extends Command
   case object ConfirmPaymentReceived extends Command
+  case object PaymentRejected        extends Command
 
   sealed trait State
   case class WaitingForStart(timers: TimerScheduler[TypedCheckout.Command])        extends State

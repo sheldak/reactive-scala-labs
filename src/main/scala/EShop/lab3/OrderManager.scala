@@ -16,6 +16,7 @@ object OrderManager {
   case class ConfirmPaymentStarted(paymentRef: ActorRef[Payment.Command])                             extends Command
   case object ConfirmPaymentReceived                                                                  extends Command
   case object ConfirmCheckoutClosed                                                                   extends Command
+  case object PaymentRejected                                                                         extends Command
 
   sealed trait Ack
   case object Done extends Ack //trivial ACK

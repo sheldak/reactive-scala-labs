@@ -30,15 +30,32 @@ object Payment {
       .receive[Message](
         (context, msg) =>
           msg match {
-            case DoPayment                                       => ???
-            case WrappedPaymentServiceResponse(PaymentSucceeded) => ???
+            case DoPayment =>
+              val paymentServiceAdapter =
+                context.messageAdapter[PaymentService.Response](res => WrappedPaymentServiceResponse(res))
+
+              val supervisedPaymentService =
+                Behaviors
+                  .supervise(PaymentService(method, paymentServiceAdapter))
+                  .onFailure(restartStrategy)
+
+              val paymentService = context.spawnAnonymous(supervisedPaymentService)
+              context.watch(paymentService)
+
+              Behaviors.same
+
+            case WrappedPaymentServiceResponse(PaymentSucceeded) =>
+              orderManager ! OrderManager.ConfirmPaymentReceived
+              checkout ! TypedCheckout.ConfirmPaymentReceived
+              Behaviors.same
         }
       )
       .receiveSignal {
-        case (context, Terminated(t)) => ???
+        case (context, Terminated(t)) =>
+          notifyAboutRejection(orderManager, checkout)
+          Behaviors.same
       }
 
-  // please use this one to notify when supervised actor was stoped
   private def notifyAboutRejection(
     orderManager: ActorRef[OrderManager.Command],
     checkout: ActorRef[TypedCheckout.Command]
