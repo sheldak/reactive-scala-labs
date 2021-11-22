@@ -27,12 +27,13 @@ object RegisteredHttpWorker {
     Behaviors.setup { context =>
       context.system.receptionist ! Receptionist.Register(HttpWorkerKey, context.self)
 
-      Behaviors.receive((context, msg) =>
-        msg match {
-          case HttpWorker.Work(work, replyTo) =>
-            context.log.info(s"I got to work on $work")
-            replyTo ! HttpWorker.WorkerResponse("Done")
-            Behaviors.same
+      Behaviors.receive(
+        (context, msg) =>
+          msg match {
+            case HttpWorker.Work(work, replyTo) =>
+              context.log.info(s"I got to work on $work")
+              replyTo ! HttpWorker.WorkerResponse("Done")
+              Behaviors.same
         }
       )
     }
