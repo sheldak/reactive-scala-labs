@@ -19,47 +19,6 @@ import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.util.Try
 
-/**
- * Basically a [[Worker]] that responds to the sender and does not stop
- */
-// object HttpWorker {
-//   sealed trait Command
-
-//   case class Work(work: String, replyTo: ActorRef[WorkerResponse]) extends Command
-
-//   case class WorkerResponse(work: String)
-
-//   def apply(): Behavior[Command] =
-//     Behaviors.receive(
-//       (context, msg) =>
-//         msg match {
-//           case Work(work, replyTo) =>
-//             context.log.info(s"I got to work on $work")
-//             replyTo ! WorkerResponse("Done")
-//             Behaviors.same
-//       }
-//     )
-// }
-
-// trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-//   case class WorkDTO(work: String)
-
-//   implicit val workerDtoWork  = jsonFormat1(WorkDTO)
-//   implicit val workerResponse = jsonFormat1(HttpWorker.WorkerResponse)
-
-//   //custom formatter just for example
-//   implicit val uriFormat = new JsonFormat[java.net.URI] {
-//     override def write(obj: java.net.URI): spray.json.JsValue = JsString(obj.toString)
-
-//     override def read(json: JsValue): URI =
-//       json match {
-//         case JsString(url) => new URI(url)
-//         case _             => throw new RuntimeException("Parsing exception")
-//       }
-//   }
-
-// }
-
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val uriFormat = new JsonFormat[java.net.URI] {
     override def write(obj: java.net.URI): spray.json.JsValue = JsString(obj.toString)
@@ -75,15 +34,15 @@ trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val responseFormat = jsonFormat1(Response)
 }
 
-object WorkHttpApp extends App {
-  val workHttpServer = new WorkHttpServer()
-  workHttpServer.run(Try(args(0).toInt).getOrElse(9000))
+object ProductCatalogHttpApp extends App {
+  val productCatalogHttpServer = new ProductCatalogHttpServerLocal()
+  productCatalogHttpServer.run(Try(args(0).toInt).getOrElse(9000))
 }
 
 /**
  * The server that distributes all of the requests to the local workers spawned via router pool.
  */
-class WorkHttpServer extends JsonSupport {
+class ProductCatalogHttpServerLocal extends JsonSupport {
 
   implicit val system           = ActorSystem(Behaviors.empty, "ReactiveRouters")
   implicit val scheduler        = system.scheduler
@@ -109,7 +68,5 @@ class WorkHttpServer extends JsonSupport {
 
   def run(port: Int): Unit = {
     val bindingFuture = Http().newServerAt("localhost", port).bind(routes)
-    println(s"Server now online. Please navigate to http://localhost:8080/hello\nPress RETURN to stop...")
-    StdIn.readLine() // let it run until user presses return
   }
 }

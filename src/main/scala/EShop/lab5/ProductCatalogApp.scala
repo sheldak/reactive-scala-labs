@@ -65,6 +65,7 @@ object ProductCatalog {
 
     Behaviors.receiveMessage {
       case GetItems(brand, productKeyWords, sender) =>
+        context.log.info(s"I got a query with brand: $brand and keywords: $productKeyWords")
         sender ! Items(searchService.search(brand, productKeyWords))
         Behaviors.same
     }
