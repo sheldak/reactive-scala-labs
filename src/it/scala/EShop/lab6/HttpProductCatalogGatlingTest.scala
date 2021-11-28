@@ -5,24 +5,23 @@ import io.gatling.http.Predef.http
 
 import scala.concurrent.duration._
 
-class HttpWorkerGatlingTest extends Simulation {
-
+class HttpProductCatalogGatlingTest extends Simulation {
   val httpProtocol = http  //values here are adjusted to cluster_demo.sh script
-    .baseUrls("http://localhost:9001", "http://localhost:9002", "http://localhost:9003")
+    .baseUrls("http://localhost:9123")
     .acceptHeader("text/plain,text/html,application/json,application/xml;")
     .userAgentHeader("Mozilla/5.0 (Windows NT 5.1; rv:31.0) Gecko/20100101 Firefox/31.0")
 
   val scn = scenario("BasicSimulation")
-    .feed(jsonFile(classOf[HttpWorkerGatlingTest].getResource("/data/work_data.json").getPath).random)
+    .feed(jsonFile(classOf[HttpProductCatalogGatlingTest].getResource("/data/items_data.json").getPath).random)
     .exec(
-      http("work_basic")
+      http("search")
         .post("/work")
-        .body(StringBody("""{ "work": "${work}" }"""))
+        .body(StringBody("""{ "brand": "${brand}", "productKeyWords": ["${productKeyWords}"] }"""))
         .asJson
     )
     .pause(5)
 
   setUp(
-    scn.inject(rampUsers(7).during(1.minutes))
+    scn.inject(rampUsers(5).during(10.seconds))
   ).protocols(httpProtocol)
 }
